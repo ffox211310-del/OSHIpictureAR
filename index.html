@@ -162,14 +162,6 @@ function capture(){
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
 
-  const s = shadowSlider.value;
-const b = blurSlider.value;
-
-ctx.shadowColor = "rgba(0,0,0,0.5)";
-ctx.shadowBlur = b;
-ctx.shadowOffsetX = s;
-ctx.shadowOffsetY = s;
-  
   const videoRect = video.getBoundingClientRect();
   const overlayRect = overlay.getBoundingClientRect();
 
@@ -190,46 +182,45 @@ ctx.shadowOffsetY = s;
   let sx, sy, sw, sh;
 
   if (videoRatio > targetRatio) {
-    // 横長 → 左右カット
     sh = vh;
     sw = vh * targetRatio;
     sx = (vw - sw) / 2;
     sy = 0;
   } else {
-    // 縦長 → 上下カット
     sw = vw;
     sh = vw / targetRatio;
     sx = 0;
     sy = (vh - sh) / 2;
   }
 
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-ctx.shadowBlur = blurSlider.value;
-ctx.shadowOffsetX = shadowSlider.value;
-ctx.shadowOffsetY = shadowSlider.value;
-
-ctx.drawImage(overlay, ...);
-
-ctx.shadowColor = "transparent"; // リセット
-  
+  // ===== ① カメラ描画 =====
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
 
-  // ===== overlayの位置補正 =====
+  // ===== ② overlay位置補正 =====
   const scaleX = width / videoRect.width;
   const scaleY = height / videoRect.height;
 
+  const drawX = (overlayRect.left - videoRect.left) * scaleX;
+  const drawY = (overlayRect.top - videoRect.top) * scaleY;
+  const drawW = overlay.width * scaleX;
+  const drawH = overlay.height * scaleY;
+
+  // ===== ③ 影設定 =====
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = blurSlider.value;
+  ctx.shadowOffsetX = shadowSlider.value;
+  ctx.shadowOffsetY = shadowSlider.value;
+
   ctx.globalAlpha = overlay.style.opacity || 1;
 
-  ctx.drawImage(
-    overlay,
-    (overlayRect.left - videoRect.left) * scaleX,
-    (overlayRect.top - videoRect.top) * scaleY,
-    overlay.width * scaleX,
-    overlay.height * scaleY
-  );
+  // ===== ④ overlay描画 =====
+  ctx.drawImage(overlay, drawX, drawY, drawW, drawH);
 
+  // ===== リセット =====
+  ctx.shadowColor = "transparent";
   ctx.globalAlpha = 1;
 
+  // ===== 保存 =====
   const link = document.createElement("a");
   link.download = "ar_9_16.png";
   link.href = canvas.toDataURL();
