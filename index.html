@@ -1,61 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>疑似ARカメラ</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+#video {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#overlay {
+  position: absolute;
+  width: 150px;
+  top: 100px;
+  left: 100px;
+  cursor: grab;
+}
+
+#ui {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+}
+</style>
+</head>
 <body>
 
-<video id="video" autoplay></video>
-<canvas id="canvas"></canvas>
-<button onclick="snap()">撮影</button>
-<input type="file" accept="image/*" id="upload">
+<video id="video" autoplay playsinline></video>
+
+<img id="overlay">
+
+<div id="ui">
+  <input type="file" id="file">
+  <button onclick="capture()">撮影</button>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
 <script>
 const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
 
 // カメラ起動
 navigator.mediaDevices.getUserMedia({ video: true })
-.then(stream => {
-  video.srcObject = stream;
+.then(stream => video.srcObject = stream);
+
+// 画像選択
+document.getElementById("file").addEventListener("change", e => {
+  const file = e.target.files[0];
+  overlay.src = URL.createObjectURL(file);
 });
 
+// ドラッグ移動
+let isDragging = false;
+let offsetX, offsetY;
 
-  navigator.mediaDevices.getUserMedia({
-  video: { facingMode: "environment" }
-})
-  
-// 撮影
-function snap(){
+overlay.addEventListener("mousedown", e => {
+  isDragging = true;
+  offsetX = e.offsetX;
+  offsetY = e.offsetY;
+});
+
+document.addEventListener("mousemove", e => {
+  if (!isDragging) return;
+  overlay.style.left = (e.clientX - offsetX) + "px";
+  overlay.style.top = (e.clientY - offsetY) + "px";
+});
+
+document.addEventListener("mouseup", () => {
+  isDragging = false;
+});
+
+// 撮影（合成）
+function capture(){
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-canvas.addEventListener("touchmove", e => {
-  x = e.touches[0].clientX - 50;
-  y = e.touches[0].clientY - 50;
-});
-  function draw(){
-  ctx.drawImage(video, 0, 0); // カメラ
 
-  // 推し画像（位置・サイズ自由）
-  ctx.drawImage(img, x, y, w, h);
-
-  requestAnimationFrame(draw);
-  }
-  
+  // カメラ描画
   ctx.drawImage(video, 0, 0);
+
+  // 画像の位置取得
+  const rect = overlay.getBoundingClientRect();
+
+  ctx.drawImage(
+    overlay,
+    rect.left,
+    rect.top,
+    overlay.width,
+    overlay.height
+  );
+
+  // 保存
+  const link = document.createElement("a");
+  link.download = "ar.png";
+  link.href = canvas.toDataURL();
+  link.click();
 }
-  let mode = "user"; // or "environment"
-
-function switchCamera(){
-  mode = (mode === "user") ? "environment" : "user";
-  startCamera();
-}
-
-  let img = new Image();
-
-document.getElementById("upload").onchange = e => {
-  const file = e.target.files[0];
-  img.src = URL.createObjectURL(file);
-};
-  
 </script>
 
 </body>
