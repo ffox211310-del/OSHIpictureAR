@@ -5,7 +5,7 @@
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
 <button onclick="snap()">撮影</button>
-
+<input type="file" accept="image/*" id="upload">
 <script>
 const video = document.getElementById("video");
 
@@ -15,6 +15,11 @@ navigator.mediaDevices.getUserMedia({ video: true })
   video.srcObject = stream;
 });
 
+
+  navigator.mediaDevices.getUserMedia({
+  video: { facingMode: "environment" }
+})
+  
 // 撮影
 function snap(){
   const canvas = document.getElementById("canvas");
@@ -22,9 +27,35 @@ function snap(){
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
+canvas.addEventListener("touchmove", e => {
+  x = e.touches[0].clientX - 50;
+  y = e.touches[0].clientY - 50;
+});
+  function draw(){
+  ctx.drawImage(video, 0, 0); // カメラ
 
+  // 推し画像（位置・サイズ自由）
+  ctx.drawImage(img, x, y, w, h);
+
+  requestAnimationFrame(draw);
+  }
+  
   ctx.drawImage(video, 0, 0);
 }
+  let mode = "user"; // or "environment"
+
+function switchCamera(){
+  mode = (mode === "user") ? "environment" : "user";
+  startCamera();
+}
+
+  let img = new Image();
+
+document.getElementById("upload").onchange = e => {
+  const file = e.target.files[0];
+  img.src = URL.createObjectURL(file);
+};
+  
 </script>
 
 </body>
