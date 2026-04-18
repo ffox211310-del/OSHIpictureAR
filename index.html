@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>3秒前に戻るメモ</title>
+</head>
+<body>
+
+<textarea id="memo" rows="10" cols="40"></textarea><br>
+<button onclick="undo()">3秒前に戻る</button>
+
+<script>
+let history = [];
+let memo = document.getElementById("memo");
+
+// 3秒ごとに保存
+setInterval(() => {
+    history.push(memo.value);
+    if(history.length > 20) history.shift(); // 古いの削除
+}, 3000);
+
+// 戻る処理
+function undo(){
+    if(history.length > 0){
+        memo.value = history.pop();
+    }
+}
+</script>
+
+</body>
+</html>
