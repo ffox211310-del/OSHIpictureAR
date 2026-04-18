@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>疑似ARカメラ</title>
+
 <style>
 body {
   margin: 0;
@@ -28,39 +29,75 @@ body {
   position: fixed;
   bottom: 10px;
   left: 10px;
+  background: rgba(0,0,0,0.5);
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
 }
 </style>
+
 </head>
 <body>
 
+<!-- カメラ -->
 <video id="video" autoplay playsinline></video>
 
+<!-- 重ねる画像 -->
 <img id="overlay">
 
+<!-- UI -->
 <div id="ui">
-  <input type="file" id="file">
+  <input type="file" id="file"><br>
+  サイズ：<input type="range" id="size" min="50" max="300" value="150"><br>
   <button onclick="capture()">撮影</button>
 </div>
 
+<!-- 合成用 -->
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
+// =========================
+// 要素取得
+// =========================
 const video = document.getElementById("video");
 const overlay = document.getElementById("overlay");
+const sizeSlider = document.getElementById("size");
 
-// カメラ起動
-navigator.mediaDevices.getUserMedia({ video: true })
-.then(stream => video.srcObject = stream);
+// =========================
+// ① 外カメラ起動
+// =========================
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { exact: "environment" } }
+})
+.then(stream => video.srcObject = stream)
+.catch(() => {
+  // fallback
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "environment" }
+  }).then(stream => video.srcObject = stream);
+});
 
-// 画像選択
+// =========================
+// ② 画像選択
+// =========================
 document.getElementById("file").addEventListener("change", e => {
   const file = e.target.files[0];
   overlay.src = URL.createObjectURL(file);
 });
 
-// ドラッグ移動
+// =========================
+// ③ サイズ変更
+// =========================
+sizeSlider.addEventListener("input", () => {
+  overlay.style.width = sizeSlider.value + "px";
+});
+
+// =========================
+// ④ ドラッグ（PC）
+// =========================
 let isDragging = false;
-let offsetX, offsetY;
+let offsetX = 0;
+let offsetY = 0;
 
 overlay.addEventListener("mousedown", e => {
   isDragging = true;
@@ -78,26 +115,59 @@ document.addEventListener("mouseup", () => {
   isDragging = false;
 });
 
-// 撮影（合成）
+// =========================
+// ⑤ ドラッグ（スマホ）
+// =========================
+overlay.addEventListener("touchstart", e => {
+  const touch = e.touches[0];
+  const rect = overlay.getBoundingClientRect();
+
+  offsetX = touch.clientX - rect.left;
+  offsetY = touch.clientY - rect.top;
+
+  isDragging = true;
+});
+
+document.addEventListener("touchmove", e => {
+  if (!isDragging) return;
+
+  const touch = e.touches[0];
+
+  overlay.style.left = (touch.clientX - offsetX) + "px";
+  overlay.style.top = (touch.clientY - offsetY) + "px";
+});
+
+document.addEventListener("touchend", () => {
+  isDragging = false;
+});
+
+// =========================
+// ⑥ 撮影（ズレ修正あり）
+// =========================
 function capture(){
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
 
+  const videoRect = video.getBoundingClientRect();
+  const overlayRect = overlay.getBoundingClientRect();
+
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
-  // カメラ描画
-  ctx.drawImage(video, 0, 0);
+  // カメラ
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // 画像の位置取得
-  const rect = overlay.getBoundingClientRect();
+  // スケール補正
+  const scaleX = canvas.width / videoRect.width;
+  const scaleY = canvas.height / videoRect.height;
 
+  // 画像合成
   ctx.drawImage(
     overlay,
-    rect.left,
-    rect.top,
-    overlay.width,
-    overlay.height
+    (overlayRect.left - videoRect.left) * scaleX,
+    (overlayRect.top - videoRect.top) * scaleY,
+    overlay.width * scaleX,
+    overlay.height * scaleY
   );
 
   // 保存
@@ -106,6 +176,7 @@ function capture(){
   link.href = canvas.toDataURL();
   link.click();
 }
+
 </script>
 
 </body>
