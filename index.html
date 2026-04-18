@@ -55,6 +55,9 @@ body {
 <!-- 合成用 -->
 <canvas id="canvas" style="display:none;"></canvas>
 
+  影：<input type="range" id="shadow" min="0" max="50" value="10"><br>
+ぼかし：<input type="range" id="blur" min="0" max="50" value="10"><br>
+  
 <script>
 // =========================
 // 要素取得
@@ -62,7 +65,18 @@ body {
 const video = document.getElementById("video");
 const overlay = document.getElementById("overlay");
 const sizeSlider = document.getElementById("size");
+const shadowSlider = document.getElementById("shadow");
+const blurSlider = document.getElementById("blur");
 
+function updateShadow(){
+  const s = shadowSlider.value;
+  const b = blurSlider.value;
+
+  overlay.style.filter = `drop-shadow(${s}px ${s}px ${b}px rgba(0,0,0,0.5))`;
+}
+
+shadowSlider.addEventListener("input", updateShadow);
+blurSlider.addEventListener("input", updateShadow);
 // =========================
 // ① 外カメラ起動
 // =========================
